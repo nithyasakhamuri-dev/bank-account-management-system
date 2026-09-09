@@ -1,19 +1,40 @@
 # Bank Account Management System
 
-A console-based Bank Account Management System built with **Java (JDBC)** and **MySQL**.
+A console-based banking application built with **Java, JDBC, and MySQL** that supports account creation, deposits, withdrawals, and secure inter-account transfers with full transaction history tracking.
+
+## Overview
+
+This project simulates the core backend logic of a simple banking system — the kind of CRUD + business-logic problem commonly used to demonstrate database-backed application design. It focuses on writing clean, defensive Java code around a relational database rather than just in-memory logic.
 
 ## Features
-- Create a new account (with opening balance)
-- Check balance
-- Deposit money
-- Withdraw money (blocks overdrafts via `InsufficientBalanceException`)
-- Transfer money between accounts (uses a real DB transaction — commit/rollback, so either both balances update or neither does)
-- View transaction history per account
-- List all accounts
+
+- **Create accounts** with an opening balance
+- **Deposit / Withdraw** funds with balance validation
+- **Transfer funds** between two accounts safely, using a real database transaction (commit/rollback) so a transfer can never leave money "stuck" between accounts if something fails mid-way
+- **Transaction history** — every deposit, withdrawal, and transfer is logged with a timestamp
+- **List all accounts** in the system
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Language | Java |
+| Database | MySQL |
+| DB Connectivity | JDBC (PreparedStatements throughout) |
+| IDE | IntelliJ IDEA |
+
+## Design Notes
+
+- **DAO pattern** — `BankDAO.java` keeps all SQL isolated from the console/menu logic in `Main.java`.
+- **`BigDecimal` for money** — avoids the floating-point rounding errors `double`/`float` would introduce with currency.
+- **Parameterized queries everywhere** — every SQL statement uses `PreparedStatement`, preventing SQL injection.
+- **Custom checked exception** — `InsufficientBalanceException` forces the calling code to explicitly handle overdraft attempts instead of failing silently.
+- **Real DB transactions for transfers** — `conn.setAutoCommit(false)` + `commit()`/`rollback()` ensures both legs of a transfer succeed together or not at all.
 
 ## Project Structure
+
 ```
-BankManagementSystem/
+bank-account-management-system/
 ├── sql/
 │   └── schema.sql          -> creates the database + tables
 ├── src/
@@ -25,52 +46,33 @@ BankManagementSystem/
 └── README.md
 ```
 
-## Setup
+## Getting Started
 
-### 1. Create the database
-Make sure MySQL is running locally, then:
+### 1. Set up the database
 ```bash
 mysql -u root -p < sql/schema.sql
 ```
 This creates the `bank_db` database with `accounts` and `transactions` tables.
 
-### 2. Get the MySQL JDBC driver
-Download `mysql-connector-j` (the MySQL Connector/J `.jar`) from:
-https://dev.mysql.com/downloads/connector/j/
+### 2. Add the MySQL JDBC driver
+Download `mysql-connector-j` from [dev.mysql.com/downloads/connector/j](https://dev.mysql.com/downloads/connector/j/) and add the `.jar` to your project's classpath/libraries.
 
-### 3. Update your DB credentials
-In `src/DBConnection.java`, change:
-```java
-private static final String DB_USER = "root";
-private static final String DB_PASSWORD = "your_mysql_password";
-```
-to match your local MySQL setup.
+### 3. Configure your credentials
+`DBConnection.java` reads the DB password from an environment variable (`DB_PASSWORD`) rather than storing it in code — set this in your IDE's run configuration or your system environment before running.
 
-### 4. Compile and run
-
-**If using plain javac (command line):**
+### 4. Run it
+Compile and run `Main.java` from your IDE, or via command line:
 ```bash
-cd src
-javac -cp .:/path/to/mysql-connector-j-8.x.x.jar -d ../out *.java
-java -cp ../out:/path/to/mysql-connector-j-8.x.x.jar Main
+javac -cp .:mysql-connector-j-9.x.x.jar -d out src/*.java
+java -cp out:mysql-connector-j-9.x.x.jar Main
 ```
-(On Windows, use `;` instead of `:` in the classpath.)
 
-**If using an IDE (IntelliJ / Eclipse):**
-1. Create a new Java project, add all files from `src/` into it.
-2. Add the `mysql-connector-j` jar to the project's libraries/dependencies.
-3. Run `Main.java`.
+## Possible Extensions
 
-## How it works (for your resume talking points)
-- **DAO pattern**: `BankDAO` separates all SQL from the console/menu logic in `Main`.
-- **PreparedStatement everywhere**: prevents SQL injection, all user input is parameterized.
-- **BigDecimal for money**: avoids floating-point rounding errors that `double`/`float` would cause with currency.
-- **Real DB transactions for transfers**: `conn.setAutoCommit(false)` + `commit()`/`rollback()` ensures a transfer can never leave money "stuck" between accounts if something fails mid-way.
-- **Custom checked exception** (`InsufficientBalanceException`): forces callers to explicitly handle the overdraft case instead of silently failing.
-- **Every transaction is logged**: the `transactions` table gives a full audit trail per account.
+- Add authentication (admin vs. customer roles)
+- Interest calculation for savings accounts
+- Export transaction history to CSV/PDF
+- Rebuild as a REST API with Spring Boot
 
-## Possible extensions (good to mention as "future work")
-- Add login/authentication (admin vs customer roles)
-- Add interest calculation on savings accounts
-- Export transaction history to PDF/CSV
-- Wrap this in a Spring Boot REST API once you're comfortable with Spring Boot
+---
+Built by Sakhamuri Nithya Sree
